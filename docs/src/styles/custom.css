@@ -1,0 +1,20 @@
+.sl-announce {
+  position: sticky; top: 0; z-index: 50;
+  background: linear-gradient(90deg, var(--sl-color-gray-6), var(--sl-color-gray-7));
+  border-bottom: 1px solid var(--sl-color-gray-5);
+  padding: .35rem .75rem;
+}
+.sl-announce a.ey-btn{
+  display:inline-block; margin-right:.5rem; padding:.4rem .7rem;
+  border-radius:.6rem; border:1px solid var(--sl-color-gray-4);
+  text-decoration:none; font-weight:600;
+  background: var(--sl-color-gray-1); color: var(--sl-color-gray-12);
+}
+.sl-announce a.ey-btn:hover{ opacity:.9 }
+.sl-announce a.ey-btn.ey-secondary{ background:transparent; color:var(--sl-color-gray-1); border-color:var(--sl-color-gray-3) }
+
+.nav-group a{
+  display:inline-block; margin:.4rem .4rem 0 0; padding:.55rem .8rem;
+  border:1px solid var(--sl-color-gray-5); border-radius:.6rem; text-decoration:none;
+}
+.nav-group a:hover{ border-color: var(--sl-color-accent) }
