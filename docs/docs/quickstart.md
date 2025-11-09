@@ -1,5 +1,5 @@
 # Quickstart
 
-1. Utwórz konto.
-2. Dodaj urządzenie lub wybierz dostępne.
-3. Uruchom pierwszy benchmark.
+1. Create an account and sign in.
+2. Add a device or connect to a provider.
+3. Enqueue a job and watch the metrics (TTFT, tokens/s, battery, thermals).
