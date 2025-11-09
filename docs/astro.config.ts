@@ -5,19 +5,27 @@ export default defineConfig({
   integrations: [
     starlight({
       title: 'Evalyard Docs',
-      logo: { src: '/favicon.svg', alt: 'Evalyard' },
-      favicon: '/favicon.svg',
-      // Use a custom SiteTitle component to inject top-level links in the header.
-      components: {
-        SiteTitle: './src/components/SiteTitle.astro'
-      },
+
+      // ❗ Używamy ścieżek względnych do zasobów w src/assets (ESM import)
+      logo: { src: './src/assets/favicon.svg', alt: 'Evalyard' },
+      favicon: './src/assets/favicon.svg',
+
+      // Link "Edytuj tę stronę"
       editLink: {
         baseUrl: 'https://github.com/Bonkowskii/Evalyard-docs/edit/main/docs/src/content/docs/',
       },
+
+      // Linki w headerze — robimy przez własny komponent nagłówka
+      components: {
+        SiteTitle: './src/components/SiteTitle.astro',
+      },
+
+      // Sidebar autogenerowany z folderów
       sidebar: [
         { label: 'Getting started', autogenerate: { directory: 'getting-started' } },
         { label: 'Guides',          autogenerate: { directory: 'guides' } },
       ],
+
       social: {
         github: 'https://github.com/Bonkowskii/Evalyard-docs',
       },
