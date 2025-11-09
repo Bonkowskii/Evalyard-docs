@@ -12,3 +12,7 @@ npm run start
 ## Build
 npm run build
 # output folder: build/
+
+
+## Cloudflare Pages
+Set environment variable `NODE_VERSION=20.18.1` (or add `.nvmrc` as provided).
