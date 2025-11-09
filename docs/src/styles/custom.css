@@ -1,0 +1,42 @@
+:root{
+  --sl-color-accent: #5b8cff;
+  --sl-color-text: #e5e7eb;
+  --sl-color-bg: #0b0c10;
+  --sl-color-bg-nav: #0f1117;
+}
+:root { --sl-text-h1: 2.25rem; --sl-text-h2: 1.5rem; }
+html{scroll-behavior:smooth}
+.starlight-aside{border-radius:12px}
+.starlight-hero{
+  background: radial-gradient(1200px 600px at 20% -10%, rgba(91,140,255,.15), transparent),
+              linear-gradient(180deg, rgba(255,255,255,.02), transparent 60%);
+  border:1px solid rgba(255,255,255,.06); border-radius:16px; padding:28px;
+}
+.cta-row{display:flex; gap:12px; margin-top:18px}
+.cta-row a{
+  display:inline-block; padding:10px 14px; border-radius:12px; font-weight:600; border:1px solid rgba(255,255,255,.12);
+  background:rgba(91,140,255,.1);
+}
+.cta-row a.secondary{background:transparent}
+code, pre{border-radius:10px}
+.nav-group a{display:inline-block; margin-right:10px}
+
+.nav-group a{padding:10px 12px;border:1px solid rgba(255,255,255,.1);border-radius:12px;margin:6px 8px 0 0}
+
+/* Sticky top announcement as header CTAs */
+.sl-announce {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: linear-gradient(90deg, var(--sl-color-gray-6), var(--sl-color-gray-7));
+  border-bottom: 1px solid var(--sl-color-gray-5);
+}
+.sl-announce a{ 
+  padding:6px 10px; 
+  border-radius:10px; 
+  border:1px solid var(--sl-color-gray-4);
+  text-decoration:none;
+  margin-left:8px;
+}
+/* Put a spacer under header so content not hidden */
+.main-frame{padding-top:0.25rem}
