@@ -9,6 +9,7 @@ const config: Config = {
   favicon: 'img/favicon.ico',
   organizationName: 'Evalyard',
   projectName: 'docs',
+  onBrokenMarkdownLinks: 'warn',
 
   onBrokenLinks: 'throw',
   onBrokenMarkdownLinks: 'warn',
@@ -18,11 +19,7 @@ const config: Config = {
     locales: ['en'],
   },
 
-  markdown: {
-    hooks: {
-      onBrokenMarkdownLinks: 'warn',
-    },
-  },
+
 
   presets: [
     [
