@@ -1,0 +1,4 @@
+:root { --sl-color-accent: 79 70 229; } /* Indigo 600 */
+.nav-links { display:inline-flex; gap:.75rem; margin-left:1rem; align-items:center; white-space:nowrap; }
+.nav-links a { text-decoration:none; opacity:.9; }
+.nav-links a:hover { text-decoration:underline; }
