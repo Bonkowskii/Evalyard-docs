@@ -8,17 +8,10 @@ export default defineConfig({
     starlight({
       title: 'Evalyard Docs',
       sidebar: [
-        {
-          label: 'Getting started',
-          items: [{ autogenerate: { directory: 'getting-started' } }]
-        },
-        {
-          label: 'Guides',
-          items: [{ autogenerate: { directory: 'guides' } }]
-        },
+        { label: 'Getting started', autogenerate: { directory: 'getting-started' } },
+        { label: 'Guides',          autogenerate: { directory: 'guides' } },
       ],
       logo: { src: '/logo.svg', replacesTitle: false },
-      editLink: false,
       tableOfContents: { minHeadingLevel: 2, maxHeadingLevel: 3 },
       social: {
         github: 'https://github.com/evalyard'
