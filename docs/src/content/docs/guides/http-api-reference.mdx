@@ -9,7 +9,7 @@ sidebar:
 All endpoints below are relative to your Evalyard backend base URL:
 
 ```text
-<BASE_URL> = https://demo.evalyard.com
+BASE_URL=https://api.demo.evalyard.com
 ```
 
 There are two main types of authentication:
@@ -19,42 +19,129 @@ There are two main types of authentication:
 
 ---
 
-## 1. LLM Gateway (direct model access via `X-Api-Key`)
+## 1. User Datasets API (custom metrics & extra fields)
 
-These endpoints let you send prompts directly to on-device / routed models via the gateway.
+Datasets are user-owned time series stored as JSONL files and visualized in the dashboard. Each dataset can have extra metrics beyond the standard fields via adapters.
+
+> **Quick start: extra metrics in two steps**
+>
+> 1. **Define your dataset adapter** with `POST /user/data/save_adapter` – tell Evalyard which field is time, device, model, and which fields are your extra metrics (with nice labels).
+> 2. **Append rows** with `POST /user/data/append_jsonl` – send your rows using that dataset name. Evalyard will store them and, if the adapter is `enabled`, automatically record usage + extra metrics so they show up on dashboards.
 
 **Auth header:**
 
 ```http
-X-Api-Key: YOUR_GATEWAY_API_KEY
+X-User-Token: YOUR_USER_TOKEN
 ```
 
 ### 1.1 Endpoints
 
-| Method | Path         | Description                                   |
-|--------|--------------|-----------------------------------------------|
-| POST   | `/ask`       | Single, synchronous model call                |
-| POST   | `/ask_stream`| Streaming model call (tokens as they are generated) |
-| POST   | `/ask_batch` | Batch of multiple requests in one call        |
-| POST   | `/ask_trace` | Debug/tracing information for a single request |
-| POST   | `/warmup`    | Warm up devices / models                      |
+| Method | Path                       | Description                                     |
+|--------|----------------------------|-------------------------------------------------|
+| POST   | `/user/data/append_jsonl`  | Append rows to a dataset (and record usage)     |
+| GET    | `/user/data/list`          | List datasets for the current user              |
+| GET    | `/user/data/get`           | Get raw dataset rows                            |
+| GET    | `/user/data/metrics`       | Get processed metrics for a dataset             |
+| GET    | `/user/data/get_adapter`   | Get dataset adapter configuration               |
+| POST   | `/user/data/save_adapter`  | Save/update dataset adapter configuration       |
 
-### 1.2 Example: synchronous call
+---
+### 1.2 Dataset adapter configuration (`POST /user/data/save_adapter`)
 
-```bash
-curl -X POST "<BASE_URL>/ask" \
-  -H "Content-Type: application/json" \
-  -H "X-Api-Key: YOUR_GATEWAY_API_KEY" \
-  -d '{
-    "prompt": "Explain on-device LLM benchmarking on phones.",
-    "system": "You are a helpful assistant.",
-    "model": "tinyllama-1.1b-chat",
-    "options": {
-      "num_predict": 256,
-      "temperature": 0.7
-    }
-  }'
+Call this once per dataset to describe how to interpret your rows and which fields should appear as extra metrics.
+
+**Save/update adapter**
+
+```http
+POST /user/data/save_adapter
+X-User-Token: <YOUR_USER_TOKEN>
+Content-Type: application/json
 ```
+
+**Example body**
+
+```json
+{
+  "dataset": "my_server_metrics",
+  "enabled": true,
+  "x_field": "ts",
+  "device_field": "device",
+  "model_field": "model",
+  "prompt_tokens_field": "prompt_tokens",
+  "completion_tokens_field": "completion_tokens",
+  "latency_ms_field": "latency_ms",
+  "ttft_ms_field": "ttft_ms",
+  "extra_fields": [
+    { "label": "GPU power (W)", "field": "gpu_power_w", "kind": "number" },
+    { "label": "CPU usage (%)", "field": "cpu_usage_pct", "kind": "number" }
+  ]
+}
+```
+
+- `dataset` – name of the dataset you will use in `append_jsonl`.
+- `enabled` – when `true`, new rows will also be converted into usage events.
+- `x_field` – which field to use for the X-axis / timestamp.
+- `device_field`, `model_field` – which fields identify device and model.
+- `prompt_tokens_field`, `completion_tokens_field`, `latency_ms_field`, `ttft_ms_field` – standard metrics fields.
+- `extra_fields` – list of extra metrics:
+  - `field` – key from your rows (e.g. `gpu_power_w`),
+  - `label` – human-readable name shown in the UI (e.g. `GPU power (W)`),
+  - `kind` – type hint for the metric (e.g. `number`).
+
+Once this adapter is saved, any rows you send via `POST /user/data/append_jsonl` with `dataset": "my_server_metrics"` and matching fields will:
+
+- be stored in the dataset;
+- appear as usage metrics (including your labeled extra metrics) in Evalyard dashboards.
+
+### 1.3 Append rows to a dataset (`POST /user/data/append_jsonl`)
+
+Use this to push your own rows (with extra metrics) into a named dataset.
+
+**Endpoint**
+
+```http
+POST /user/data/append_jsonl
+X-User-Token: <YOUR_USER_TOKEN>
+Content-Type: application/json
+```
+
+**Body**
+
+```json
+{
+  "dataset": "my_server_metrics",
+  "rows": [
+    {
+      "ts": "2025-12-03T18:00:00Z",
+      "device": "server-1",
+      "model": "llama3-8b",
+      "prompt_tokens": 50,
+      "completion_tokens": 120,
+      "latency_ms": 900,
+      "ttft_ms": 220,
+      "gpu_power_w": 45.5,
+      "cpu_usage_pct": 60.3
+    },
+    {
+      "ts": "2025-12-03T18:05:00Z",
+      "device": "server-1",
+      "model": "llama3-8b",
+      "prompt_tokens": 70,
+      "completion_tokens": 150,
+      "latency_ms": 950,
+      "ttft_ms": 240,
+      "gpu_power_w": 48.2,
+      "cpu_usage_pct": 63.1
+    }
+  ]
+}
+```
+
+The backend will:
+
+- append each row to `data/users/<user_id>/datasets/my_server_metrics.jsonl`,
+- automatically add metadata fields like `_meta_user_id`, `_meta_dataset`, `_meta_ts`,
+- if a dataset adapter is configured and `enabled`, also derive usage metrics (including your extra metrics) from these rows.
 
 ---
 
@@ -104,7 +191,7 @@ curl -X POST "<BASE_URL>/api/jobs" \
     },
     "priority": 1,
     "queue_tag": "short",
-    "device_serial": "SM-G973F",
+    "device_serial": "0000asd",
     "adapter_id": "my_server_metrics",
     "callback_url": "https://example.com/hooks/job-finished"
   }'
@@ -138,248 +225,4 @@ X-User-Token: YOUR_USER_TOKEN
 | GET    | `/usage/compare`    | Compare two time ranges / configurations        |
 | GET    | `/usage/export.csv` | Export raw runs as CSV                          |
 
-Common query parameters:
 
-- `minutes`, `since_s`, `from`, `to` – time range
-- `model`, `tag`, `device`, `tenant` – filters
-- `group_by` – e.g. `device`, `model`, `tag`
-
-### 3.2 Import usage (push your own runs)
-
-You can push your own usage events directly.
-
-| Method | Path            | Description                    |
-|--------|-----------------|--------------------------------|
-| POST   | `/usage/import` | Import a batch of usage rows   |
-
-Body (array of rows):
-
-```json
-[
-  {
-    "ts": 1733740000.0,
-    "device": "server-1",
-    "tag": "prod",
-    "model": "llama3-8b",
-    "prompt_tokens": 120,
-    "completion_tokens": 350,
-    "latency_ms": 4200.0,
-    "ttft_ms": 900.0,
-    "tok_s": 12.5,
-    "ok": true,
-    "job_id": "job_123",
-    "prompt_preview": "SELECT * FROM users...",
-    "source_kind": "server",
-    "extra": {
-      "GPU power (W)": 85.5,
-      "CPU usage (%)": 60.0
-    }
-  }
-]
-```
-
-Example:
-
-```bash
-curl -X POST "<BASE_URL>/usage/import" \
-  -H "Content-Type: application/json" \
-  -H "X-User-Token: YOUR_USER_TOKEN" \
-  -d '[ { ...rows as above... } ]'
-```
-
----
-
-## 4. User Datasets API (custom metrics & extra fields)
-
-Datasets are user-owned time series stored as JSONL files and visualized in the dashboard.  
-Each dataset can have extra metrics beyond the standard fields via adapters.
-
-**Auth header:**
-
-```http
-X-User-Token: YOUR_USER_TOKEN
-```
-
-### 4.1 Endpoints
-
-| Method | Path                          | Description                                 |
-|--------|-------------------------------|---------------------------------------------|
-| POST   | `/user/data/append_jsonl`     | Append rows to a dataset (and record usage) |
-| GET    | `/user/data/list`            | List datasets for the current user          |
-| GET    | `/user/data/get`             | Get raw dataset rows                        |
-| GET    | `/user/data/metrics`         | Get processed metrics for a dataset         |
-| GET    | `/user/data/get_adapter`     | Get dataset adapter configuration           |
-| POST   | `/user/data/save_adapter`    | Save/update dataset adapter configuration   |
-
-### 4.2 Append rows to a dataset
-
-**Endpoint**
-
-```http
-POST /user/data/append_jsonl
-X-User-Token: <YOUR_USER_TOKEN>
-Content-Type: application/json
-```
-
-**Body**
-
-```json
-{
-  "dataset": "my_server_metrics",
-  "rows": [
-    {
-      "ts": "2025-12-03T18:00:00Z",
-      "device": "server-1",
-      "model": "llama3-8b",
-      "prompt_tokens": 50,
-      "completion_tokens": 120,
-      "latency_ms": 900,
-      "ttft_ms": 220,
-      "gpu_power_w": 45.5,
-      "cpu_usage_pct": 60.3
-    },
-    {
-      "ts": "2025-12-03T18:05:00Z",
-      "device": "server-1",
-      "model": "llama3-8b",
-      "prompt_tokens": 70,
-      "completion_tokens": 150,
-      "latency_ms": 950,
-      "ttft_ms": 240,
-      "gpu_power_w": 48.2,
-      "cpu_usage_pct": 63.1
-    }
-  ]
-}
-```
-
-The backend will:
-
-- append each row to `data/users/<user_id>/datasets/my_server_metrics.jsonl`,
-- automatically add metadata fields like `_meta_user_id`, `_meta_dataset`, `_meta_ts`,
-- if a dataset adapter is configured, also derive usage metrics from these rows.
-
-### 4.3 Dataset adapter configuration
-
-**Get adapter**
-
-```http
-GET /user/data/get_adapter?dataset=my_server_metrics
-X-User-Token: <YOUR_USER_TOKEN>
-```
-
-**Save/update adapter**
-
-```http
-POST /user/data/save_adapter
-X-User-Token: <YOUR_USER_TOKEN>
-Content-Type: application/json
-```
-
-Example body:
-
-```json
-{
-  "dataset": "my_server_metrics",
-  "enabled": true,
-  "x_field": "ts",
-  "device_field": "device",
-  "model_field": "model",
-  "prompt_tokens_field": "prompt_tokens",
-  "completion_tokens_field": "completion_tokens",
-  "latency_ms_field": "latency_ms",
-  "ttft_ms_field": "ttft_ms",
-  "extra_fields": [
-    { "label": "GPU power (W)", "field": "gpu_power_w", "kind": "number" },
-    { "label": "CPU usage (%)", "field": "cpu_usage_pct", "kind": "number" }
-  ]
-}
-```
-
----
-
-## 5. Adapters API (log parsing & job adapters)
-
-These adapters describe how to extract metrics from job logs / outputs.
-
-**Auth header:**
-
-- `X-User-Token` – for user-level operations
-- some operations may be admin-only
-
-### 5.1 Endpoints
-
-| Method | Path                                      | Description                                      |
-|--------|-------------------------------------------|--------------------------------------------------|
-| GET    | `/api/adapters/catalog`                   | List built-in adapter templates/catalog          |
-| GET    | `/api/adapters/configs`                   | List adapter configs for current user            |
-| POST   | `/api/adapters/configs`                   | Create or update adapter configuration           |
-| GET    | `/api/adapters/configs/{adapter_id}`      | Get adapter config by id                         |
-| GET    | `/api/adapters/device_defaults/{serial}`  | Get default adapter for a device                 |
-| PUT    | `/api/adapters/device_defaults/{serial}`  | Set default adapter for a device                 |
-| POST   | `/api/adapters/probe`                     | Probe/test adapter on specific input             |
-| GET    | `/api/adapters/result/{job_id}`           | Get parsed adapter result for a job              |
-
-> Note: These are different from the dataset adapters in `/user/data/*`.  
-> These are used for parsing job logs / raw output into structured metrics.
-
----
-
-## 6. Devices API
-
-**Auth header:**
-
-```http
-X-User-Token: YOUR_USER_TOKEN
-```
-
-### 6.1 Endpoints
-
-| Method | Path                | Description                          |
-|--------|---------------------|--------------------------------------|
-| GET    | `/devices`          | List available devices & their status|
-| POST   | `/devices/register` | Register a new device (internal)     |
-| POST   | `/devices/reload`   | Reload device configuration/state    |
-
----
-
-## 7. Share Links API (view-only links)
-
-Share links allow you to share a read-only view of devices, jobs, and usage with other people via a token.
-
-**Auth:**
-
-- Create/delete → `X-User-Token`
-- View via share → no user token, only share token in URL
-
-### 7.1 Endpoints
-
-| Method | Path                               | Description                                 |
-|--------|------------------------------------|---------------------------------------------|
-| POST   | `/share`                           | Create a new share link                     |
-| GET    | `/share/{token}`                   | Get share metadata                          |
-| DELETE | `/share/{token}`                   | Delete a share link                         |
-| GET    | `/share/{token}/devices`           | List devices in this shared view            |
-| GET    | `/share/{token}/jobs`              | List jobs in this shared view               |
-| GET    | `/share/{token}/jobs/{job_id}`     | Get job details in this shared view         |
-| GET    | `/share/{token}/usage/summary`     | Get usage summary for shared view           |
-
----
-
-## 8. Metrics & Health
-
-These endpoints are usually used by monitoring systems.
-
-**Auth:**
-
-- often none, or internal-only depending on deployment
-
-### 8.1 Endpoints
-
-| Method | Path            | Description                                |
-|--------|-----------------|--------------------------------------------|
-| GET    | `/metrics`      | Prometheus metrics endpoint                |
-| GET    | `/metrics/summary` | Aggregated metrics summary (JSON)      |
-| GET    | `/alerts`       | Recent system alerts                       |
-| GET    | `/ping`         | Quick connectivity/health ping             |
-| GET    | `/health`       | Full health snapshot of all devices        |
