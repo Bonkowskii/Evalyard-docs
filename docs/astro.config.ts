@@ -8,7 +8,8 @@ export default defineConfig({
       logo: { src: './src/assets/favicon.svg', alt: 'Evalyard' },
       favicon: './src/assets/favicon.svg',
       components: {
-        SiteTitle: './src/components/SiteTitle.astro'
+        SiteTitle: './src/components/SiteTitle.astro',
+        Head: './src/components/Head.astro',   // <— DODANE
       },
       editLink: {
         baseUrl: 'https://github.com/Bonkowskii/Evalyard-docs/edit/main/docs/src/content/docs/'
@@ -23,3 +24,4 @@ export default defineConfig({
     })
   ]
 });
+

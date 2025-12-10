@@ -1,0 +1,14 @@
+---
+const entry = Astro.props?.entry;
+const title =
+  entry?.data?.title ?? 'Evalyard Docs';
+const description =
+  entry?.data?.description ?? 'Evalyard documentation and API reference';
+---
+
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+<title>{title}</title>
+<meta name="description" content={description} />
+
